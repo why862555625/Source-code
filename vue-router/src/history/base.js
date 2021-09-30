@@ -102,12 +102,20 @@ transitionTo(
   // 记录之前的路由，后面会用到
 
   const prev = this.current
+  // 这个才是真正切换路由的方法，下面会讲
+
   this.confirmTransition(
+    // 传入准备切换的路由
     route,
+    // 切换之后的回调
     () => {
+      // 更新到当前路由信息 (current)，下面会讲
       this.updateRoute(route)
+      // 执行用户传入的 onComplete回调
       onComplete && onComplete(route)
+      // 更新浏览器地址栏上的 URL
       this.ensureURL()
+      // 执行注册的 afterHooks
       this.router.afterHooks.forEach(hook => {
         hook && hook(route, prev)
       })
@@ -115,15 +123,20 @@ transitionTo(
       // fire ready cbs once
       if (!this.ready) {
         this.ready = true
+        // 执行用户传入的 onReady 回调
         this.readyCbs.forEach(cb => {
           cb(route)
         })
       }
     },
+    // 发生错误的回调
+
     err => {
       if (onAbort) {
         onAbort(err)
       }
+      // 执行用户传入的 onError 回调
+
       if (err && !this.ready) {
         // Initial redirection should not mark the history as ready yet
         // because it's triggered by the redirection instead
@@ -139,10 +152,16 @@ transitionTo(
     }
   )
 }
-
+// 因为待跳转路由有可能是一个异步组件，所以设计成有回调的方法
 confirmTransition(route: Route, onComplete: Function, onAbort ?: Function) {
+  // 跳转前的的路由（from）
+
   const current = this.current
+  // 待跳转的路由（to）
+
   this.pending = route
+  // 错误时的回调
+
   const abort = err => {
     // changed after adding errors with
     // https://github.com/vuejs/vue-router/pull/3047 before that change,
@@ -161,21 +180,28 @@ confirmTransition(route: Route, onComplete: Function, onAbort ?: Function) {
   }
   const lastRouteIndex = route.matched.length - 1
   const lastCurrentIndex = current.matched.length - 1
+  // 判断是否相同路径
   if (
     isSameRoute(route, current) &&
     // in the case the route map has been dynamically appended to
     lastRouteIndex === lastCurrentIndex &&
     route.matched[lastRouteIndex] === current.matched[lastCurrentIndex]
   ) {
+    // 依旧切换
+
     this.ensureURL()
+    // 报一个重复导航的错误
+
     return abort(createNavigationDuplicatedError(current, route))
   }
-
+  // 通过 from 和 to的 matched 数组拿到新增、更新、销毁的部分，以便执行组件的生命周期
+  // 该方法下面会仔细讲
   const { updated, deactivated, activated } = resolveQueue(
     this.current.matched,
     route.matched
   )
-
+  // 一个队列，存放各种组件生命周期和导航守卫
+  // 这里的顺序可以看回前面讲的完整的导航解析流程，具体实现下面会讲
   const queue: Array<?NavigationGuard> = [].concat(
     // in-component leave guards
     extractLeaveGuards(deactivated),
@@ -188,18 +214,32 @@ confirmTransition(route: Route, onComplete: Function, onAbort ?: Function) {
     // async components
     resolveAsyncComponents(activated)
   )
+  // 迭代器，每次执行一个钩子，调用 next 时才会进行下一项
 
   const iterator = (hook: NavigationGuard, next) => {
+    // 在当前导航还没有完成之前又有了一个新的导航。
+    // 比如，在等待导航守卫的过程中又调用了 router.push
+    // 这时候需要报一个 cancel 错误
     if (this.pending !== route) {
       return abort(createNavigationCancelledError(current, route))
     }
+    // 执行当前钩子，但用户传入的导航守卫有可能会出错，需要 try 一下
+
     try {
+      // 这就是路由钩子的参数：to、from、next
+
       hook(route, current, (to: any) => {
+        // 我们可以通过 next('/login') 这样的方式来重定向
+        // 如果传入 false 则中断当前的导航，并将 URL 重置到 from 路由对应的地址
         if (to === false) {
           // next(false) -> abort navigation, ensure current URL
           this.ensureURL(true)
           abort(createNavigationAbortedError(current, route))
+          // 如果传入 next 的参数是一个 Error 实例
+          // 则导航会被终止且该错误会被传递给 router.onError() 注册过的回调。
         } else if (isError(to)) {
+          // 判断传入的参数是否符合要求
+
           this.ensureURL(true)
           abort(to)
         } else if (
@@ -209,20 +249,26 @@ confirmTransition(route: Route, onComplete: Function, onAbort ?: Function) {
         ) {
           // next('/') or next({ path: '/' }) -> redirect
           abort(createNavigationRedirectedError(current, route))
+          // 判断切换类型
+
           if (typeof to === 'object' && to.replace) {
             this.replace(to)
           } else {
             this.push(to)
           }
         } else {
+          // 不符合则跳转至 to
           // confirm transition and pass on the value
           next(to)
         }
       })
+      // 出错时执行 abort 回调
+
     } catch (e) {
       abort(e)
     }
   }
+  // 执行队列，下面仔细讲
 
   runQueue(queue, iterator, () => {
     // wait until async components are resolved before

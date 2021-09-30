@@ -55,24 +55,38 @@ export function createMatcher(
   function match(
     raw: RawLocation,
     currentRoute?: Route,
+    // 使用重定向方式切换时才会传入
+
     redirectedFrom?: Location
   ): Route {
+    // 将待切换的路由转换成一个标准的 Location 对象
+    // 例如：path 补全、合并 params 等
     const location = normalizeLocation(raw, currentRoute, false, router)
+    // 待切换路由的 name
+
     const { name } = location
 
     if (name) {
+      // 有 name 属性的时候直接通过 nameMap 获取，根本无需遍历，非常高效
+
       const record = nameMap[name]
       if (process.env.NODE_ENV !== 'production') {
         warn(record, `Route with name '${name}' does not exist`)
       }
+      // 该路由不存在，创建一个空的路由记录
+
       if (!record) return _createRoute(null, location)
+      // 获取可以从父路由中继承的 param 参数
+
       const paramNames = record.regex.keys
         .filter(key => !key.optional)
         .map(key => key.name)
+      //  params 需要为对象
 
       if (typeof location.params !== 'object') {
         location.params = {}
       }
+      // 继承父路由的 param 参数
 
       if (currentRoute && typeof currentRoute.params === 'object') {
         for (const key in currentRoute.params) {
@@ -81,20 +95,29 @@ export function createMatcher(
           }
         }
       }
+      // 将 path 和 param 合并为 URL
 
       location.path = fillParams(record.path, location.params, `named route "${name}"`)
+      // 创建路由记录
+
       return _createRoute(record, location, redirectedFrom)
     } else if (location.path) {
+      // 如果是通过 path 跳转，则需要通过遍历 pathList 匹配对应的路由
+
       location.params = {}
       for (let i = 0; i < pathList.length; i++) {
         const path = pathList[i]
         const record = pathMap[path]
+        // 检查路径与当前遍历到的路由是否匹配，该方法下面会讲
+
         if (matchRoute(record.regex, location.path, location.params)) {
+
           return _createRoute(record, location, redirectedFrom)
         }
       }
     }
-    // no match
+    // 找不到匹配的则创建一条空的路由记录
+
     return _createRoute(null, location)
   }
 
@@ -209,10 +232,15 @@ function matchRoute(
   const m = path.match(regex)
 
   if (!m) {
+    // 不匹配则直接退出
+
     return false
   } else if (!params) {
+    // 如果匹配并且该路由没有声明 param 参数，则匹配成功
+
     return true
   }
+  // 将使用正则匹配到的 param 参数放入 params 对象中
 
   for (let i = 1, len = m.length; i < len; ++i) {
     const key = regex.keys[i - 1]
