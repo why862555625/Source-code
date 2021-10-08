@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <div>
+      <button onclick='goto("/a")'>/a</button>
+      <button onclick='goto("/b")'>/b</button>
+      <div id="root"></div>
+    </div>
+  </body>
+  <script>
+    console.log(`file: history.html  ~ line 18  ~ window`, window);
+    let oldPushState = window.history.pushState;
+    window.history.pushState = function (state, title, path) {
+      //  增加方法 监听onpushState
+      oldPushState.call(history, ...arguments);
+
+      window.onpushState && window.onpushState(state, title, path);
+    };
+
+    function goto(path) {
+      console.log(`file: history.html  ~ line 24  ~ goto  ~ path`, path);
+      window.history.pushState("path", path, path);
+    }
+
+    window.onpushState = window.onpopstate = function (e) {
+      const pathName = location.pathname;
+      console.log(`file: history.html  ~ line 33  ~ pathName`, pathName);
+      if (pathName == "/a") {
+        innerHTML = "A";
+      } else if (pathName == "/b") {
+        innerHTML = "B";
+      }
+      console.log(e);
+    };
+  </script>
+</html>

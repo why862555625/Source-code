@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <div id="app"></div>
+  </body>
+  <script>
+      const creatAppAPI=(reder)=>{}
+    //2.实现renderer工厂函数
+    const creatRenderer = options => {
+      // 该对象就是renderer
+      const render = (vnode, container) => {}
+      return {
+        render,
+        createApp: creatAppAPI(render)
+      }
+    }
+    //1.createApp
+    const Vue = {
+      creatApp(options) {
+        //执行的实际是renderer.createApp()
+        return renderer.createApp(options)
+      }
+    }
+    
+  </script>
+</html>

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+
+  <body>
+    <div>
+      <a href="#/a">a</a>
+      <a href="#/b">b</a>
+      <h1 id="root"></h1>
+    </div>
+  </body>
+  <script>
+    const content = document.getElementById("root");
+    window.addEventListener("hashchange", (_) => {
+      let hash = window.location.hash;
+      let innerHTML = "C";
+      if (hash == "#/a") {
+        innerHTML = "A";
+      } else if (hash == "#/b") {
+        innerHTML = "B";
+      }
+      content.innerHTML = innerHTML;
+    });
+  </script>
+</html>

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <div id="app">{{title}}</div>
+  </body>
+  <script src="../dist/vue.global.js"></script>
+  <script>
+    /*     const { createApp } = Vue
+    createApp({
+      data() {
+        return {
+          title: '王阿往上打'
+        }
+      }
+    }).mount('#app') */
+    let a = 'MIUI v12.5 21.9.14(dev)'
+    a.match(/\d+/)
+    let b = a.match(/(?<=\s)(\d||.)*(?=\s)/)[0]
+    console.log('🚀 ~ file: 01-init.html ~ line 25 ~ b', b)
+    let c = b.match(/v+/)
+    console.log('🚀 ~ file: 01-init.html ~ line 27 ~ c', c)
+  </script>
+</html>
