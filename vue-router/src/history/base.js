@@ -203,15 +203,15 @@ confirmTransition(route: Route, onComplete: Function, onAbort ?: Function) {
   // 一个队列，存放各种组件生命周期和导航守卫
   // 这里的顺序可以看回前面讲的完整的导航解析流程，具体实现下面会讲
   const queue: Array<?NavigationGuard> = [].concat(
-    // in-component leave guards
+    // 调用此次失活的部分组件的 beforeRouteLeave
     extractLeaveGuards(deactivated),
-    // global before hooks
+    // 全局的 before 钩子
     this.router.beforeHooks,
-    // in-component update hooks
+    // 调用此次更新的部分组件的 beforeRouteUpdate
     extractUpdateHooks(updated),
-    // in-config enter guards
+    // 调用此次激活的路由配置的 beforeEach
     activated.map(m => m.beforeEnter),
-    // async components
+    // 解析异步组件
     resolveAsyncComponents(activated)
   )
   // 迭代器，每次执行一个钩子，调用 next 时才会进行下一项
@@ -268,8 +268,9 @@ confirmTransition(route: Route, onComplete: Function, onAbort ?: Function) {
       abort(e)
     }
   }
-  // 执行队列，下面仔细讲
-
+  // queue 就是上面那个队列
+  // iterator 传入 to、from、next，只有执行 next 才会进入下一项
+  // cb 回调函数，当执行完整个队列后调用
   runQueue(queue, iterator, () => {
     // wait until async components are resolved before
     // extracting in-component enter guards
@@ -355,7 +356,10 @@ function resolveQueue(
     deactivated: current.slice(i)
   }
 }
-
+// records: routerRecord 数组
+// name 钩子的名字
+// bind 就是 bindGuard 方法，下面会讲
+// reverse 是否倒序执行
 function extractGuards(
   records: Array<RouteRecord>,
   name: string,
@@ -385,16 +389,22 @@ function extractGuard(
 }
 
 function extractLeaveGuards(deactivated: Array<RouteRecord>): Array<?Function> {
+  // 最后一个参数为 true 是因为这个生命周期要倒序执行，先执行子路由的再执行父路由的
   return extractGuards(deactivated, 'beforeRouteLeave', bindGuard, true)
 }
 
 function extractUpdateHooks(updated: Array<RouteRecord>): Array<?Function> {
   return extractGuards(updated, 'beforeRouteUpdate', bindGuard)
 }
-
+// guard：某个生命周期钩子
+// instance：执行的 vue 实例
 function bindGuard(guard: NavigationGuard, instance: ?_Vue): ?NavigationGuard {
   if (instance) {
+    // 这时只是返回这个方法，没有立即调用
+
     return function boundRouteGuard() {
+      // 调用这个钩子
+
       return guard.apply(instance, arguments)
     }
   }
